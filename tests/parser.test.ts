@@ -10,14 +10,13 @@ describe("extractJobMeta", () => {
   });
 
   it("extracts from dash pattern", () => {
-    const text = "Acme – Senior Backend Engineer\nResponsibilities include...";
+    const text = "Acme - Senior Backend Engineer\nResponsibilities include...";
     const { title, company } = extractJobMeta(text);
-    // Short part (Acme) should be company
     expect(company).toBe("Acme");
     expect(title).toContain("Senior Backend Engineer");
   });
 
-  it("falls back to first line as title when no pattern matches", () => {
+  it("falls back to first title-like line when no pattern matches", () => {
     const text = "Director of Product\nYou will be responsible for setting product strategy...";
     const { title } = extractJobMeta(text);
     expect(title).toBe("Director of Product");
@@ -34,5 +33,32 @@ describe("extractJobMeta", () => {
     const { title, company } = extractJobMeta(text);
     expect(title).toBe("Data Scientist");
     expect(company).toBe("Stripe");
+  });
+
+  it("extracts all-caps JD title and company from about section", () => {
+    const text = `FORWARD DEPLOYED ENGINEER
+Location: Remote | Type: Contract
+About Newpage Solutions
+Newpage Solutions is a global digital health innovation company.
+Your Mission
+The Forward Deployed Engineer is a hands on technical contributor.`;
+
+    const { title, company } = extractJobMeta(text);
+
+    expect(title).toBe("Forward Deployed Engineer");
+    expect(company).toBe("Newpage Solutions");
+  });
+
+  it("extracts labelled job title without using generic header lines", () => {
+    const text = `About the team
+Job Title: Junior Architect (AI Engineer with AWS Skills)
+Company: Example Health
+What You'll Do
+Build AI systems.`;
+
+    const { title, company } = extractJobMeta(text);
+
+    expect(title).toBe("Junior Architect (AI Engineer with AWS Skills)");
+    expect(company).toBe("Example Health");
   });
 });

@@ -65,7 +65,7 @@ flowchart LR
 ### Runtime Flow
 
 1. User uploads or pastes a resume/JD.
-2. `parser.ts` extracts text from PDF or plain text.
+2. `parser.ts` extracts text from PDF or plain text and derives job metadata such as role title/company when possible.
 3. `chunker.ts` splits text into overlapping chunks.
 4. `embedder.ts` embeds chunks with Gemini and stores vectors in memory.
 5. `chat/route.ts` chooses a context policy for the user question. Normal analytical questions use balanced RAG retrieval, while broad rewrite requests such as "rewrite my whole resume" use full-document context so every resume role and the full JD are available.
@@ -186,6 +186,17 @@ Current dynamic intents:
 
 The intent layer is intentionally light: it does not replace retrieval or hard-code final answers. It tells the model what shape of answer is useful for the current question while the retrieved resume/JD chunks remain the evidence source.
 
+### Job Metadata Extraction
+
+Job descriptions often start with noisy content such as location, contract type, company boilerplate, or section headers. The ingestion parser uses lightweight heuristics to derive useful job metadata for the sidebar and citations:
+
+- explicit labels such as `Job Title:`, `Role:`, `Position:`, or `Designation:`
+- common title/company patterns such as `Software Engineer at Acme` or `Acme - Senior Backend Engineer`
+- all-caps role headers such as `FORWARD DEPLOYED ENGINEER`
+- company hints such as `Company: ...` or `About Newpage Solutions`
+
+The parser deliberately ignores generic lines like `About the team`, `Location`, `What You'll Do`, and `What You Bring` so uploaded jobs get meaningful titles instead of random header text.
+
 ### ATS-Style Scoring As One Branch
 
 Score and keyword-match questions get an extra deterministic context block from `atsScorer.ts`.
@@ -239,7 +250,7 @@ The guardrails are pragmatic rather than heavyweight:
 Current automated tests cover:
 
 - Chunking behavior and source labels.
-- Parser/job metadata heuristics.
+- Parser/job metadata heuristics, including all-caps role titles and labelled job-title lines.
 - Prompt construction and guardrail coverage.
 - Vector store ranking, filtering, deletion, and stats.
 - Dynamic ATS scoring and score-question detection.
@@ -252,7 +263,7 @@ npm run typecheck
 npm test
 ```
 
-At the time of this README update, the suite passes with **6 test files and 40 tests**.
+At the time of this README update, the suite passes with **6 test files and 42 tests**.
 
 ### Observability
 

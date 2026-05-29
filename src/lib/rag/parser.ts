@@ -50,20 +50,33 @@ export function extractJobMeta(text: string): {
 } {
   const lines = text
     .split("\n")
-    .map((line) => line.trim())
+    .map((line) => cleanLine(line))
     .filter(Boolean)
-    .slice(0, 15);
+    .slice(0, 40);
 
   if (lines.length === 0) return {};
 
-  const firstLine = lines[0];
+  const company = extractCompany(lines);
 
   // "Software Engineer at Acme" or "Software Engineer @ Acme".
   const atPattern = /^(.+?)\s+(?:at|@)\s+(.+)$/i;
   for (const line of lines) {
     const match = line.match(atPattern);
-    if (match && wordCount(match[1]) <= 6) {
-      return { title: match[1].trim(), company: match[2].trim() };
+    const title = match?.[1]?.trim();
+    const companyFromLine = match?.[2]?.trim();
+    if (title && isLikelyJobTitle(title)) {
+      return { title: titleCaseIfAllCaps(title), company: companyFromLine };
+    }
+  }
+
+  // "Job Title: Forward Deployed Engineer", "Role: AI Engineer", etc.
+  const labelledTitlePattern =
+    /^(?:job\s*)?(?:title|role|position|opening|designation)\s*:\s*(.+)$/i;
+  for (const line of lines) {
+    const match = line.match(labelledTitlePattern);
+    const title = match?.[1]?.trim();
+    if (title && isLikelyJobTitle(title)) {
+      return { title: titleCaseIfAllCaps(title), company };
     }
   }
 
@@ -75,34 +88,102 @@ export function extractJobMeta(text: string): {
 
     const left = match[1].trim();
     const right = match[2].trim();
-    if (wordCount(left) <= 5 && wordCount(right) <= 5) {
-      return wordCount(left) <= wordCount(right)
-        ? { company: left, title: right }
-        : { title: left, company: right };
-    }
-  }
-
-  // Short first line is usually a title; scan nearby lines for company hints.
-  if (wordCount(firstLine) <= 6 && !/[.!?]$/.test(firstLine)) {
-    const companyPatterns = [
-      /^(?:at|@|company:|organization:|employer:)\s*(.+)/i,
-      /^About\s+(.+)/i,
-      /^Hiring\s+(?:company|organization):\s*(.+)/i,
-    ];
-
-    for (const line of lines.slice(1, 8)) {
-      for (const pattern of companyPatterns) {
-        const match = line.match(pattern);
-        if (match) return { title: firstLine, company: match[1].trim() };
+    if (wordCount(left) <= 8 && wordCount(right) <= 8) {
+      if (isLikelyJobTitle(left) && !isLikelyJobTitle(right)) {
+        return { title: titleCaseIfAllCaps(left), company: right };
+      }
+      if (isLikelyJobTitle(right) && !isLikelyJobTitle(left)) {
+        return { title: titleCaseIfAllCaps(right), company: left };
       }
     }
-
-    return { title: firstLine };
   }
 
-  return { title: firstLine };
+  // The first strong title-looking line is usually the role.
+  for (const line of lines.slice(0, 12)) {
+    const candidate = stripHeaderSuffixes(line);
+    if (isLikelyJobTitle(candidate)) {
+      return { title: titleCaseIfAllCaps(candidate), company };
+    }
+  }
+
+  const fallback = lines.find((line) => !isNoiseLine(line)) ?? lines[0];
+  return { title: titleCaseIfAllCaps(stripHeaderSuffixes(fallback)), company };
 }
 
 function wordCount(value: string): number {
   return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function cleanLine(line: string): string {
+  return line
+    .replace(/^[\s|•*§-]+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractCompany(lines: string[]): string | undefined {
+  const explicitPatterns = [
+    /^(?:company|organization|employer)\s*:\s*(.+)$/i,
+  ];
+  const inferredPatterns = [
+    /^about\s+(.+)$/i,
+    /^(.+?)\s+is\s+(?:a|an)\s+/i,
+  ];
+
+  for (const line of lines.slice(0, 12)) {
+    for (const pattern of explicitPatterns) {
+      const match = line.match(pattern);
+      const candidate = match?.[1]?.trim();
+      if (candidate && wordCount(candidate) <= 6 && !isNoiseLine(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  for (const line of lines.slice(0, 12)) {
+    for (const pattern of inferredPatterns) {
+      const match = line.match(pattern);
+      const candidate = match?.[1]?.trim();
+      if (candidate && wordCount(candidate) <= 6 && !isNoiseLine(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function stripHeaderSuffixes(line: string): string {
+  return line
+    .replace(/\s*\|\s*(location|type|remote|contract|full[- ]?time).*$/i, "")
+    .replace(/\s+(location|type)\s*:\s*.+$/i, "")
+    .trim();
+}
+
+function isLikelyJobTitle(value: string): boolean {
+  const title = stripHeaderSuffixes(value);
+  const words = wordCount(title);
+  if (words < 2 || words > 9) return false;
+  if (/[.!?]$/.test(title)) return false;
+  if (isNoiseLine(title)) return false;
+
+  return /\b(engineer|developer|architect|scientist|analyst|manager|lead|consultant|specialist|designer|administrator|director|product|data|ai|ml|machine learning|forward deployed|fullstack|full-stack|backend|frontend|platform|cloud|devops|security)\b/i.test(
+    title
+  );
+}
+
+function isNoiseLine(value: string): boolean {
+  return /^(about|your mission|what you'?ll do|what you bring|what we offer|ready to apply|location|type|remote|contract|responsibilities|requirements|qualifications|benefits|2025)$/i.test(
+    value.trim()
+  );
+}
+
+function titleCaseIfAllCaps(value: string): string {
+  if (value !== value.toUpperCase()) return value;
+  return value
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .replace(/\bAi\b/g, "AI")
+    .replace(/\bMl\b/g, "ML")
+    .replace(/\bApi\b/g, "API");
 }
