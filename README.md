@@ -6,7 +6,7 @@ The current MVP is intentionally simple: Next.js full stack app, Gemini for embe
 
 ![Career Intel home screen](./screenshots/career-intel-home.png)
 
-Additional screenshots can be added under [`screenshots/`](./screenshots/) before final submission.
+Additional screenshots can be found under [`screenshots/`](./screenshots/).
 
 ---
 
