@@ -1,6 +1,12 @@
 # Screenshots
 
-Place final application screenshots in this folder before submission.
+This folder contains the visual submission artifacts for Career Intel.
+
+## Demo Video
+
+[![Career Intel demo video](https://img.youtube.com/vi/lhHEqGCuwww/hqdefault.jpg)](https://youtu.be/lhHEqGCuwww)
+
+Watch the demo: [Career Intel application walkthrough](https://youtu.be/lhHEqGCuwww)
 
 Current screenshots:
 

@@ -4,7 +4,9 @@ A full-stack conversational assistant for comparing a resume against one or more
 
 The current MVP is intentionally simple: Next.js full stack app, Gemini for embeddings and answer generation, an in-memory vector store, and a deterministic ATS-style scoring helper for score/keyword-match questions.
 
-![Career Intel home screen](./screenshots/career-intel-home.png)
+[![Career Intel demo video](https://img.youtube.com/vi/lhHEqGCuwww/hqdefault.jpg)](https://youtu.be/lhHEqGCuwww)
+
+Watch the demo: [Career Intel application walkthrough](https://youtu.be/lhHEqGCuwww)
 
 Additional screenshots can be found under [`screenshots/`](./screenshots/).
 
