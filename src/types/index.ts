@@ -1,6 +1,4 @@
-// ─────────────────────────────────────────────────────────
-// Document & Chunk types
-// ─────────────────────────────────────────────────────────
+// Document and chunk types
 
 export type DocumentKind = "resume" | "job";
 
@@ -9,34 +7,30 @@ export interface ParsedDocument {
   kind: DocumentKind;
   filename: string;
   rawText: string;
-  /** Parsed title, e.g. "Senior Engineer @ Acme" for jobs */
+  /** Parsed title, e.g. "Senior Engineer @ Acme" for jobs. */
   title?: string;
   company?: string;
-  uploadedAt: string; // ISO string
+  uploadedAt: string;
 }
 
 export interface Chunk {
   id: string;
   documentId: string;
   documentKind: DocumentKind;
-  /** Human-readable label for citations, e.g. "resume §3" or "Job #2 §1" */
+  /** Human-readable label for citations, e.g. "Resume section 3". */
   sourceLabel: string;
   text: string;
   chunkIndex: number;
   embedding?: number[];
 }
 
-// ─────────────────────────────────────────────────────────
 // Vector store
-// ─────────────────────────────────────────────────────────
 
 export interface RetrievedChunk extends Chunk {
   score: number;
 }
 
-// ─────────────────────────────────────────────────────────
 // Chat
-// ─────────────────────────────────────────────────────────
 
 export type MessageRole = "user" | "assistant" | "system";
 
@@ -53,17 +47,15 @@ export interface Citation {
   snippet: string;
 }
 
-// ─────────────────────────────────────────────────────────
 // API request/response shapes
-// ─────────────────────────────────────────────────────────
 
 export interface IngestRequest {
   filename: string;
   kind: DocumentKind;
-  /** Base64-encoded file content */
+  /** Base64-encoded file content. */
   content: string;
   mimeType: string;
-  /** Optional custom title for job descriptions */
+  /** Optional custom title for job descriptions. */
   customTitle?: string;
 }
 
@@ -74,7 +66,8 @@ export interface IngestResponse {
 
 export interface ChatRequest {
   messages: Pick<ChatMessage, "role" | "content">[];
-  documentIds?: string[]; // scope retrieval; empty = use all
+  /** Scope retrieval; empty means use all uploaded documents. */
+  documentIds?: string[];
 }
 
 export interface ChatResponse {
@@ -82,9 +75,7 @@ export interface ChatResponse {
   retrievedChunks: RetrievedChunk[];
 }
 
-// ─────────────────────────────────────────────────────────
-// App state (client-side)
-// ─────────────────────────────────────────────────────────
+// App state
 
 export interface AppState {
   documents: Array<Omit<ParsedDocument, "rawText">>;

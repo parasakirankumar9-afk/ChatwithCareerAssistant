@@ -42,6 +42,20 @@ export function detectQueryIntent(question: string): QueryIntent {
   return INTENT_RULES.find((rule) => rule.pattern.test(question))?.intent ?? "general";
 }
 
+export function shouldUseFullDocumentContext(question: string): boolean {
+  const normalized = question.toLowerCase();
+  const isRewrite = detectQueryIntent(question) === "resume_rewrite";
+  const asksForWholeDocument =
+    /\b(whole|full|entire|complete|all|end[- ]?to[- ]?end)\b/.test(normalized);
+  const asksForResumeDocument = /\b(resume|cv|profile)\b/.test(normalized);
+  const asksForLongFormDraft =
+    /\b(rewrite|revise|tailor|optimize|update|create|draft|generate)\b/.test(
+      normalized
+    );
+
+  return isRewrite && asksForResumeDocument && (asksForWholeDocument || asksForLongFormDraft);
+}
+
 export function buildDynamicQueryContext(
   docs: ParsedDocument[],
   question: string
@@ -105,6 +119,8 @@ function instructionsForIntent(intent: QueryIntent): string[] {
         "Suggest resume wording that targets the JD without inventing experience.",
         "Preserve truthfulness: only rewrite or emphasize evidence present in the resume context.",
         "Prefer concrete bullets, keywords, and quantified impact where supported.",
+        "If the user asks for a full or whole resume rewrite, preserve every original employer, role, date range, education item, and major section from the resume context.",
+        "Do not replace missing retrieved sections with placeholders. If full context is unavailable, say that a complete rewrite needs the full resume text.",
       ];
     case "job_comparison":
       return [

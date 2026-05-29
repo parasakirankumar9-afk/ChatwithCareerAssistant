@@ -4,7 +4,9 @@ A full-stack conversational assistant for comparing a resume against one or more
 
 The current MVP is intentionally simple: Next.js full stack app, Gemini for embeddings and answer generation, an in-memory vector store, and a deterministic ATS-style scoring helper for score/keyword-match questions.
 
-![Career Intel Screenshot](./screenshots/placeholder.png)
+![Career Intel home screen](./screenshots/career-intel-home.png)
+
+Additional screenshots can be added under [`screenshots/`](./screenshots/) before final submission.
 
 ---
 
@@ -46,11 +48,14 @@ flowchart LR
   EmbedDocs --> Store["In-memory vector store"]
   Ingest --> Registry["In-memory document registry"]
 
-  Chat --> EmbedQuery["Gemini query embedding\nRETRIEVAL_QUERY"]
+  Chat --> RouteIntent["Intent-aware context policy"]
+  RouteIntent --> EmbedQuery["Gemini query embedding\nRETRIEVAL_QUERY"]
+  RouteIntent --> FullDoc["Full-document context\nfor broad rewrite tasks"]
   EmbedQuery --> Retrieve["Balanced retrieval\nresume + JD chunks"]
   Registry --> Intent["Dynamic query guidance\nall question types"]
   Intent --> Ats["ATS scorer\nscore questions only"]
   Retrieve --> Prompt["Context + guardrail prompt"]
+  FullDoc --> Prompt
   Ats --> Prompt
   Intent --> Prompt
   Prompt --> LLM["Gemini chat stream"]
@@ -63,7 +68,8 @@ flowchart LR
 2. `parser.ts` extracts text from PDF or plain text.
 3. `chunker.ts` splits text into overlapping chunks.
 4. `embedder.ts` embeds chunks with Gemini and stores vectors in memory.
-5. `chat/route.ts` embeds the user question, retrieves relevant chunks from both resume and JD documents, adds dynamic guidance based on the question intent, and streams the LLM answer.
+5. `chat/route.ts` chooses a context policy for the user question. Normal analytical questions use balanced RAG retrieval, while broad rewrite requests such as "rewrite my whole resume" use full-document context so every resume role and the full JD are available.
+6. The route adds dynamic guidance based on the detected intent and streams the Gemini answer back to the UI.
 
 ---
 
@@ -162,6 +168,8 @@ The chat route uses **balanced retrieval**:
 
 This matters because a naive single-vector query can over-retrieve from the resume for alignment questions and starve the LLM of job-description context.
 
+For broad drafting tasks such as "rewrite my whole resume according to this JD," the app deliberately switches away from top-k chunk retrieval and uses **full-document context**. A whole-resume rewrite needs every employer, role, date range, education item, and major section; otherwise the model may collapse older roles or invent placeholders. This context policy keeps normal RAG efficient while making full-document transformations more faithful.
+
 ### Dynamic Query Handling
 
 The input box is not limited to predefined questions. Every user message is routed through `queryContext.ts`, which detects broad career-intelligence intents and adds task-specific guidance before the LLM answers.
@@ -204,10 +212,12 @@ The prompt has four layers:
 
 1. **System prompt:** role, grounding rules, guardrails, score-request behavior, answer style.
 2. **Dynamic query guidance:** intent-specific instructions for the current free-form user question.
-3. **Dynamic context:** retrieved chunks and, for score questions only, the computed ATS-style analysis.
+3. **Dynamic context:** retrieved chunks for analytical questions, full-document context for broad rewrite tasks, and for score questions only, the computed ATS-style analysis.
 4. **Conversation history:** the client sends the last 10 messages to keep context bounded.
 
 Context is injected into the final user turn using `buildUserTurnWithContext`. This keeps the API simple and makes the model answer the current question using the freshest retrieved evidence.
+
+The response prompt is intentionally adaptive rather than one fixed template. Analytical questions get concise evidence-backed comparisons. Rewrite/drafting questions start with the finished content the user can use directly, avoid inline source labels inside resume text, and include only a short rationale afterward.
 
 ### Guardrails
 
@@ -242,7 +252,7 @@ npm run typecheck
 npm test
 ```
 
-At the time of this README update, the suite passes with **6 test files and 36 tests**.
+At the time of this README update, the suite passes with **6 test files and 40 tests**.
 
 ### Observability
 
@@ -331,7 +341,7 @@ What I would not do:
 2. Add hybrid retrieval: keyword/BM25 plus vector search.
 3. Extract structured job requirements during ingestion.
 4. Add per-document selection and side-by-side job comparison.
-5. Add E2E tests for upload -> ingest -> chat -> score.
+5. Add E2E tests for upload -> ingest -> chat -> score and full-resume rewrite flows.
 6. Add persistent chat history and cancellation for streaming.
 7. Build an evaluation set with known resume/JD pairs and expected answer characteristics.
 

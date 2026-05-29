@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildDynamicQueryContext,
   detectQueryIntent,
+  shouldUseFullDocumentContext,
 } from "@/lib/rag/queryContext";
 import type { ParsedDocument } from "@/types";
 
@@ -56,5 +57,18 @@ describe("queryContext", () => {
 
     expect(context).toContain("Detected user intent: ats_score");
     expect(context).toContain("Dynamic ATS-Style Analysis");
+  });
+
+  it("uses full document context for broad resume rewrite requests", () => {
+    expect(
+      shouldUseFullDocumentContext("rewrite my whole full resume according to the JD")
+    ).toBe(true);
+    expect(shouldUseFullDocumentContext("tailor my resume for this role")).toBe(
+      true
+    );
+    expect(shouldUseFullDocumentContext("what skills am I missing?")).toBe(
+      false
+    );
+    expect(shouldUseFullDocumentContext("rewrite my summary")).toBe(false);
   });
 });

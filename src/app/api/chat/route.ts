@@ -6,12 +6,16 @@ import { getDocumentRegistry } from "@/lib/rag/registry";
 import {
   SYSTEM_PROMPT,
   buildContextBlock,
+  buildFullDocumentContextBlock,
   buildUserTurnWithContext,
 } from "@/lib/rag/prompts";
 import { streamComplete } from "@/lib/rag/llm";
 import { getEnv } from "@/lib/env";
 import { logger } from "@/lib/logger";
-import { buildDynamicQueryContext } from "@/lib/rag/queryContext";
+import {
+  buildDynamicQueryContext,
+  shouldUseFullDocumentContext,
+} from "@/lib/rag/queryContext";
 import { v4 as uuidv4 } from "uuid";
 import type { Citation, RetrievedChunk } from "@/types";
 
@@ -35,7 +39,7 @@ const ChatBodySchema = z.object({
  * Strategy:
  *  1. Split registered docs into resume IDs and job IDs.
  *  2. Query each group separately with up to topK chunks each.
- *  3. Always anchor the first chunk (§1) of every document — this guarantees
+ *  3. Always anchor the first chunk of every document. This guarantees
  *     the resume professional summary and JD overview are always in context.
  *  4. Merge, de-duplicate, re-sort by score, cap at topK * 2.
  *  5. Fall back to a global query if only one doc type exists.
@@ -136,42 +140,67 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Embed the query
-    const queryEmbedding = await embedText(lastUserMessage.content);
-
-    // Balanced retrieval — guarantees both resume & JD context when both exist
-    const chunks: RetrievedChunk[] = retrieveBalanced(
-      queryEmbedding,
-      env.RETRIEVAL_TOP_K,
-      env.RETRIEVAL_MIN_SCORE,
-      documentIds?.length ? documentIds : undefined
-    );
-
-    logger.info("retrieved chunks for chat", {
-      query: lastUserMessage.content.slice(0, 80),
-      totalChunks: chunks.length,
-      resumeChunks: chunks.filter((c) => c.documentKind === "resume").length,
-      jobChunks: chunks.filter((c) => c.documentKind === "job").length,
-    });
-
-    // Build citations from retrieved chunks
-    const citations: Citation[] = chunks.slice(0, 5).map((c) => ({
-      sourceLabel: c.sourceLabel,
-      snippet: c.text.slice(0, 200).replace(/\n/g, " ") + (c.text.length > 200 ? "..." : ""),
-    }));
-
     const scopedDocs = getDocumentRegistry()
       .getAll()
       .filter((doc) =>
         documentIds?.length ? documentIds.includes(doc.id) : true
       );
+
+    const useFullContext = shouldUseFullDocumentContext(lastUserMessage.content);
+    let chunks: RetrievedChunk[] = [];
+    let retrievalContextBlock: string;
+    let citations: Citation[];
+
+    if (useFullContext) {
+      retrievalContextBlock = buildFullDocumentContextBlock(scopedDocs);
+      citations = scopedDocs.slice(0, 5).map((doc) => ({
+        sourceLabel:
+          doc.kind === "resume"
+            ? `Resume: ${doc.filename}`
+            : `JD: ${doc.title ?? doc.filename}`,
+        snippet:
+          doc.rawText.slice(0, 200).replace(/\n/g, " ") +
+          (doc.rawText.length > 200 ? "..." : ""),
+      }));
+      logger.info("using full document context for chat", {
+        query: lastUserMessage.content.slice(0, 80),
+        documents: scopedDocs.length,
+        resumeDocs: scopedDocs.filter((doc) => doc.kind === "resume").length,
+        jobDocs: scopedDocs.filter((doc) => doc.kind === "job").length,
+      });
+    } else {
+      // Embed the query
+      const queryEmbedding = await embedText(lastUserMessage.content);
+
+      // Balanced retrieval: guarantees both resume and JD context when both exist.
+      chunks = retrieveBalanced(
+        queryEmbedding,
+        env.RETRIEVAL_TOP_K,
+        env.RETRIEVAL_MIN_SCORE,
+        documentIds?.length ? documentIds : undefined
+      );
+
+      logger.info("retrieved chunks for chat", {
+        query: lastUserMessage.content.slice(0, 80),
+        totalChunks: chunks.length,
+        resumeChunks: chunks.filter((c) => c.documentKind === "resume").length,
+        jobChunks: chunks.filter((c) => c.documentKind === "job").length,
+      });
+
+      // Build citations from retrieved chunks
+      citations = chunks.slice(0, 5).map((c) => ({
+        sourceLabel: c.sourceLabel,
+        snippet: c.text.slice(0, 200).replace(/\n/g, " ") + (c.text.length > 200 ? "..." : ""),
+      }));
+      retrievalContextBlock = buildContextBlock(chunks);
+    }
+
     const dynamicQueryContext = buildDynamicQueryContext(
       scopedDocs,
       lastUserMessage.content
     );
 
     // Build context block and inject into last user turn
-    const retrievalContextBlock = buildContextBlock(chunks);
     const contextBlock = `${dynamicQueryContext}\n\n---\n\n${retrievalContextBlock}`;
     const enrichedMessages = messages.map((m, idx) => {
       if (idx === messages.length - 1 && m.role === "user") {

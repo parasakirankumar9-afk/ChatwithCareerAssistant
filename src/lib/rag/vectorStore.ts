@@ -27,8 +27,8 @@ interface StoredChunk extends Chunk {
  *
  * Trade-offs vs. a production vector DB:
  * - No persistence across server restarts (by design for this assignment)
- * - O(n) brute-force search — fine for hundreds/low thousands of chunks
- * - No HNSW / approximate search — not needed at this scale
+ * - O(n) brute-force search, fine for hundreds or low thousands of chunks
+ * - No HNSW / approximate search, not needed at this scale
  *
  * For production: swap this for Pinecone, Weaviate, pgvector, or LanceDB.
  */
@@ -99,7 +99,7 @@ class InMemoryVectorStore {
 
   /**
    * Return the first chunk (chunkIndex === 0) of each specified document.
-   * Used as "anchor" chunks — always injected into retrieval results to ensure
+   * Used as anchor chunks. They are always injected into retrieval results to ensure
    * the resume summary and JD overview are always in the LLM context.
    */
   getFirstChunks(documentIds: string[]): RetrievedChunk[] {
@@ -112,7 +112,7 @@ class InMemoryVectorStore {
         !seen.has(chunk.documentId)
       ) {
         seen.add(chunk.documentId);
-        result.push({ ...chunk, score: 1.0 }); // anchor score = 1.0 so it sorts first
+        result.push({ ...chunk, score: 1.0 });
       }
     });
     return result;
@@ -123,7 +123,7 @@ class InMemoryVectorStore {
   }
 }
 
-// Singleton — Next.js dev mode hot-reloads can re-instantiate modules,
+// Singleton: Next.js dev mode hot-reloads can re-instantiate modules,
 // so we attach to global to survive reloads.
 const GLOBAL_KEY = "__careerIntelVectorStore__";
 declare global {
