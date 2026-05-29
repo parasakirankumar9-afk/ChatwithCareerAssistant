@@ -14,13 +14,49 @@ Additional screenshots can be found under [`screenshots/`](./screenshots/).
 
 **Prerequisites:** Node.js 18+ and npm.
 
+Clone and install:
+
 ```bash
+git clone https://github.com/parasakirankumar9-afk/ChatwithCareerAssistant.git
+cd ChatwithCareerAssistant
 npm install
-cp .env.example .env.local
-# Add your GEMINI_API_KEY to .env.local
-npm run dev
-# http://localhost:3000
 ```
+
+Create local environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Add a Google Gemini API key to `.env.local`:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Run the app:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+Optional verification:
+
+```bash
+npm run typecheck
+npm test
+npm run build
+```
+
+The MVP uses in-memory storage, so uploaded documents disappear when the dev server restarts. No database or Docker setup is required for local review.
 
 **Environment variables:**
 
