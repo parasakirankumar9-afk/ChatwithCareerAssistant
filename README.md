@@ -2,9 +2,7 @@
 
 A full-stack conversational assistant for comparing a resume against one or more job descriptions. Users can upload or paste a resume and job postings, then ask about fit, skill gaps, keyword coverage, estimated ATS-style score, experience alignment, and interview preparation.
 
-The current MVP is intentionally simple: Next.js full stack app, Gemini for embeddings and answer generation, an in-memory vector store, and a deterministic ATS-style scoring helper for score/keyword-match questions.
-
-![Career Intel Screenshot](./screenshots/placeholder.png)
+The current MVP is intentionally simple: Next.js full stack app, Gemini for embeddings and answer generation, an in-memory vector store, dynamic query handling, and a deterministic ATS-style scoring helper for score/keyword-match questions.
 
 ---
 
@@ -77,8 +75,8 @@ I chose Gemini for the MVP because it keeps the provider surface simple: the sam
 
 **Choices considered:**
 
-- **OpenAI GPT-4o-mini / GPT-4.1-mini:** strong default for structured responses, but would add a second provider if embeddings stayed on Gemini.
-- **Claude:** good writing quality, but no native embedding path in this app.
+- **OpenAI GPT-4o-mini / GPT-4.1-mini:** strong default for structured responses, but it would add a second provider if embeddings stayed on Gemini.
+- **Claude:** strong writing quality, but it would not give this app a native embedding path.
 - **Local models:** attractive for privacy, but not worth the setup cost for a working assignment prototype.
 
 **Current generation settings:**
@@ -307,21 +305,33 @@ Pure LLM scoring can be inconsistent. A deterministic score block gives repeatab
 
 ## How I Used AI Tools
 
-Claude Code and Codex were used as coding accelerators, not as unattended authors.
+I used AI coding assistants as accelerators, not as unattended authors. The most useful pattern was asking for scaffolding or implementation options, then reading the generated code, simplifying it where needed, and validating it with tests.
 
 My workflow:
 
-- Use AI to scaffold modules, tests, and UI wiring.
-- Read and revise generated code before keeping it.
-- Run typecheck/tests after changes.
+- Use AI for boilerplate, module scaffolding, and test ideas.
+- Review generated code before keeping it.
+- Keep architecture decisions tied to the assignment constraints and the codebase size.
 - Prefer small, understandable modules over opaque generated abstractions.
-- Ask AI for implementation help, but keep architecture choices tied to the actual assignment constraints.
+- Run typecheck and tests after meaningful changes.
 
 What I would not do:
 
 - Blindly commit generated README claims.
 - Let AI pick providers or architecture without checking the trade-offs.
 - Accept a passing UI if the retrieval path or failure modes are unclear.
+
+---
+
+## Screenshots
+
+Screenshots should be added before final submission. Suggested captures:
+
+1. Empty upload state.
+2. Resume and job description uploaded.
+3. Skill gap or experience alignment answer.
+4. ATS-style score answer.
+5. Interview preparation or resume rewrite answer.
 
 ---
 
