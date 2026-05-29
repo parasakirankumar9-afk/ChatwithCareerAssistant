@@ -2,9 +2,15 @@
 
 Place final application screenshots in this folder before submission.
 
-Current screenshot:
+Current screenshots:
 
 - `career-intel-home.png` - app home/upload state.
+- `career-intel-skill-gap-top.png` - skill-gap answer with uploaded resume and JD visible.
+- `career-intel-skill-gap-bottom.png` - continuation of skill-gap answer with recommendations.
+- `career-intel-sources-expanded.png` - expanded source references for retrieved context.
+- `career-intel-sources-expanded-bottom.png` - continuation of expanded source references.
+- `career-intel-summary-rewrite.png` - resume summary rewrite response.
+- `career-intel-interview-prep.png` - interview preparation guidance response.
 
 Recommended captures:
 
