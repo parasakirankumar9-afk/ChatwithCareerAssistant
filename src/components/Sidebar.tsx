@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, Briefcase, Plus, AlertCircle, RefreshCw } from "lucide-react";
+import { FileText, BriefcaseBusiness, Plus, AlertCircle, RefreshCw } from "lucide-react";
 import clsx from "clsx";
 import { FileUploadZone } from "./FileUploadZone";
 import { DocumentCard } from "./DocumentCard";
@@ -56,9 +56,12 @@ export function Sidebar({
       <div className="px-5 py-4 border-b border-[var(--border)]">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-[var(--ink-900)] flex items-center justify-center">
-            <span className="text-xs font-semibold text-[var(--gold-300)] font-display tracking-tight">
-              CI
-            </span>
+            <BriefcaseBusiness
+              size={16}
+              strokeWidth={2.2}
+              className="text-[var(--gold-300)]"
+              aria-hidden="true"
+            />
           </div>
           <div>
             <h1 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
@@ -134,7 +137,7 @@ export function Sidebar({
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded bg-[var(--gold-100)] flex items-center justify-center">
-                <Briefcase size={11} className="text-[var(--gold-400)]" />
+                <BriefcaseBusiness size={11} className="text-[var(--gold-400)]" />
               </div>
               <h2 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Jobs
